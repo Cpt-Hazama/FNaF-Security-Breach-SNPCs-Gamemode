@@ -13,7 +13,7 @@ ENT.Author 			= "Cpt. Hazama"
 ENT.Contact 		= "http://steamcommunity.com/groups/vrejgaming"
 ENT.Purpose 		= "Gives a lot of health when taken."
 ENT.Instructions 	= "Don't change anything."
-ENT.Category		= "VJ Base - Amnesia"
+ENT.Category		= "Five Nights at Freddy's"
 
 ENT.Spawnable = false
 ENT.AdminOnly = false
@@ -36,10 +36,6 @@ function ENT:Initialize()
 	self:SetUseType(SIMPLE_USE)
 	self:SetPos(self:GetPos() +Vector(0,0,4))
 
-	self.Loop = CreateSound(self,"music/mannrobics.wav")
-	self.Loop:SetSoundLevel(55)
-	self.Loop:Play()
-
 	local StartLight1 = ents.Create("light_dynamic")
 	StartLight1:SetKeyValue("brightness", "1")
 	StartLight1:SetKeyValue("distance", "75")
@@ -58,6 +54,18 @@ function ENT:Initialize()
 	if phys and IsValid(phys) then
 		phys:Wake()
 	end
+
+	self.Loop = CreateSound(self,"cpthazama/fnaf_sb/music_box.wav") -- music/mannrobics.wav
+	self.Loop:SetSoundLevel(65)
+	self.Loop:Play()
+end
+---------------------------------------------------------------------------------------------------------------------------------------------
+function ENT:Think()
+	if !self.Loop then
+		self.Loop = CreateSound(self,"cpthazama/fnaf_sb/music_box.wav") -- music/mannrobics.wav
+		self.Loop:SetSoundLevel(65)
+		self.Loop:Play()
+	end
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:PhysicsCollide(data, physobj)
@@ -73,26 +81,29 @@ function ENT:Use(activator, caller)
 			break
 		end
 	end
-	for _,v in RandomPairs(ents.FindInSphere(self:GetPos(),900)) do
+	for _,v in RandomPairs(ents.FindInSphere(self:GetPos(),1000)) do
 		if v:IsNPC() && !v.VJ_FNaF_StaffBot && !v.VJ_FNAFSB_Bot && !IsValid(v:GetEnemy()) then
 			v:SetLastPosition(self:GetPos())
 			v:VJ_TASK_GOTO_LASTPOS("TASK_WALK_PATH")
 			break
 		end
 	end
+	self:EmitSound("cpthazama/fnaf_sb/sfx_io_prize_box_popopen.wav",70)
 	if activator:IsPlayer() then
 		net.Start("vj_fnafsb_gm_sound")
 			net.WriteEntity(activator)
 			net.WriteString("^cpthazama/fnafsb/vanessa/fx_vanny/Vanny_MusicBox_0" .. math.random(1,8) .. ".wav")
 		net.Send(activator)
 		local r = math.random(1,5)
-		if r == 1 then
-			local gm = GetFNaFGamemode()
-			gm:GiveWeapon(activator,VJ_PICK({"weapon_vj_fnafsb_blaster","weapon_vj_fnafsb_fazcam","weapon_vj_fnafsb_fazwatch"}))
-		else
-			local e = ents.Create("item_battery")
-			e:SetPos(activator:GetPos() +activator:OBBCenter())
-			e:Spawn()
+		local gm = GetFNaFGamemode()
+		if gm != false then
+			if r == 1 then
+				gm:GiveWeapon(activator,VJ_PICK({"weapon_vj_fnafsb_blaster","weapon_vj_fnafsb_fazcam","weapon_vj_fnafsb_fazwatch"}))
+			else
+				local e = ents.Create("item_battery")
+				e:SetPos(activator:GetPos() +activator:OBBCenter())
+				e:Spawn()
+			end
 		end
 	end
 

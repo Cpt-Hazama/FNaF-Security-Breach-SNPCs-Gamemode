@@ -20,8 +20,8 @@ function ENT:Loadout(v)
 	timer.Simple(0,function()
 		v:SetHealth(100)
 		v:SetArmor(100)
-		v:SetWalkSpeed(150)
-		v:SetRunSpeed(220)
+		v:SetWalkSpeed(100)
+		v:SetRunSpeed(230)
 		v:SetJumpPower(150)
 		v:SetLadderClimbSpeed(30)
 		self:GiveWeapon(v,"weapon_vj_fnafsb_fazlight")
@@ -285,30 +285,22 @@ function ENT:Think()
 				if math.random(1,2) == 1 then self:SetPos(v:GetPos()) end -- Prevent HUD from soft-locking
 				if GetConVar("ai_ignoreplayers"):GetInt() == 1 then continue end
 				local wep = v:GetActiveWeapon()
-				-- if !v.DidLoadout then
-				-- 	self:Loadout(v)
-				-- 	return
-				-- end
 				if IsValid(wep) && wep:GetClass() != "weapon_vj_fnafsb_fazlight" then
 					v:AllowFlashlight(false)
 				end
-				-- v:StripWeapons()
-				-- v:SetRunSpeed(v:GetWalkSpeed())
 			end
 			players_alive = players_alive +1
 		end
 	end
 
-	if players_alive == 0 && !self.End then
-		self:PlayerMsg("All Players have died, Animatronics win!")
-		self.End = true
-		self:Remove()
-	elseif remaining <= 0 && !self.End then
-		self:PlayerMsg("All Gifts have been found, Players win!")
-		self.End = true
-		self:Remove()
+	if !self.End then
+		if players_alive == 0 or remaining <= 0 then
+			self:PlayerMsg(players_alive == 0 && "All Players have died, Animatronics win!" or "All Gifts have been found, Players win!")
+			self.End = true
+			self:Remove()
+		end
 	end
-	self:NextThink(CurTime() +0.01)
+	self:NextThink(CurTime() +(0.069696968793869 +FrameTime()))
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:OnRemove()

@@ -21,7 +21,7 @@ if VJExists == true then
 	end
 
 	local vCat = Name
-	VJ.AddNPC("(Gamemode) Scavenger Hunt (Versus)","sent_vj_fnafsb_gamemode",vCat)
+	VJ.AddNPC("(Gamemode) Scavenger Hunt","sent_vj_fnafsb_gamemode",vCat)
 	VJ.AddNPC("Player Bot","npc_vj_fnafsb_bot",vCat)
 
 	VJ.AddConVar("vj_fnafsb_gm_count", 3, {FCVAR_ARCHIVE, FCVAR_NOTIFY})

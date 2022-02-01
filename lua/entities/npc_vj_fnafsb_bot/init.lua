@@ -52,8 +52,8 @@ ENT.NextCheckPosT = 0
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:GetSightDirection()
 	local att = self:LookupAttachment("eyes")
-	if self:GetModel() == "models/error.mdl" then self:Remove() return end
-	return att && self:GetAttachment(att).Ang:Forward() or self:GetForward()
+	if att == -1 then self:Remove() print("A Bot had a weird issue occur, removing them now.") return end
+	return att != 0 && self:GetAttachment(att).Ang:Forward() or self:GetForward()
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:OnReleasedFromJumpscare(ent)
