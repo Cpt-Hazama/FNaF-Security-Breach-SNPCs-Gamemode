@@ -61,11 +61,7 @@ function ENT:Initialize()
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:Think()
-	if !self.Loop then
-		self.Loop = CreateSound(self,"cpthazama/fnaf_sb/music_box.wav") -- music/mannrobics.wav
-		self.Loop:SetSoundLevel(65)
-		self.Loop:Play()
-	end
+	self.Loop:Play()
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:PhysicsCollide(data, physobj)
@@ -82,7 +78,7 @@ function ENT:Use(activator, caller)
 		end
 	end
 	for _,v in RandomPairs(ents.FindInSphere(self:GetPos(),1000)) do
-		if v:IsNPC() && !v.VJ_FNaF_StaffBot && !v.VJ_FNAFSB_Bot && !IsValid(v:GetEnemy()) then
+		if v:IsNPC() && !v.VJ_FNaF_StaffBot && !v.VJ_FNAFSB_Bot && !IsValid(v:GetEnemy()) && v.VJ_TASK_GOTO_LASTPOS then
 			v:SetLastPosition(self:GetPos())
 			v:VJ_TASK_GOTO_LASTPOS("TASK_WALK_PATH")
 			break
@@ -100,9 +96,10 @@ function ENT:Use(activator, caller)
 			if r == 1 then
 				gm:GiveWeapon(activator,VJ_PICK({"weapon_vj_fnafsb_blaster","weapon_vj_fnafsb_fazcam","weapon_vj_fnafsb_fazwatch"}))
 			else
-				local e = ents.Create("item_battery")
-				e:SetPos(activator:GetPos() +activator:OBBCenter())
-				e:Spawn()
+				activator:SetArmor(math.Clamp(activator:Armor() +25,0,100))
+				-- local e = ents.Create("item_battery")
+				-- e:SetPos(activator:GetPos() +activator:OBBCenter())
+				-- e:Spawn()
 			end
 		end
 	end

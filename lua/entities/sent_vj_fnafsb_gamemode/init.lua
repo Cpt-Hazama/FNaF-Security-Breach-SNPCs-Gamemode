@@ -1,4 +1,3 @@
-AddCSLuaFile("cl_init.lua")
 AddCSLuaFile("shared.lua")
 include('shared.lua')
 
@@ -14,10 +13,43 @@ function ENT:GiveWeapon(ent,wep)
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:Loadout(v)
+	v:SetNW2Bool("FNaFSB_Death",false)
 	v:Spawn()
 	v:StripWeapons()
 	v.DidLoadout = true
+	self:SetPos(v:EyePos())
+	-- net.Start("vj_fnafsb_gm_dat")
+	-- 	net.WriteTable(self.Enemies)
+	-- 	net.WriteTable(self.EnemiesStoredClasses)
+	-- 	net.WriteInt(self:EntIndex(),14)
+	-- net.Send(v)
 	timer.Simple(0,function()
+		local controlled = false
+		if #player.GetAll() > 2 && GetConVar("vj_fnafsb_gm_plyenemy"):GetInt() == 1 then
+			if math.random(1,#player.GetAll()) == 1 then
+				for _,ent in RandomPairs(self.Enemies) do
+					if !ent.VJ_IsBeingControlled then
+						ent:SetNW2Bool("FNaFSB_Death",true)
+						self:PlayerSetMsg(v,"You are an Enemy. Find and kill all of the Survivors to win!")
+						local obj = ents.Create("obj_vj_npccontroller")
+						obj.VJCE_Player = v
+						obj:SetControlledNPC(ent)
+						obj:Spawn()
+						obj:StartControlling()
+						v:SetEyeAngles(ent:GetAngles())
+						obj.VJC_Player_CanExit = false
+						obj.VJC_Player_DrawHUD = false
+						controlled = true
+						-- print("Set " .. v:Nick() .. " as controlled")
+						break
+					end
+				end
+			end
+		end
+		if controlled then
+			-- self:SetNW2Int("PlayerCount",self:GetNW2Int("PlayerCount") -1)
+			return
+		end
 		v:SetHealth(100)
 		v:SetArmor(100)
 		v:SetWalkSpeed(100)
@@ -57,6 +89,7 @@ function ENT:Initialize()
 	self.EnemyCount = math.Clamp(GetConVar("vj_fnafsb_gm_count"):GetInt(),1,self.MaxEnemies)
 	self.ItemCount = GetConVar("vj_fnafsb_gm_itemcount"):GetInt()
 	self.BotCount = GetConVar("vj_fnafsb_gm_botcount"):GetInt()
+	self.PlayerIndex = 1
 	self.End = false
 	self.Items = {}
 	self.Enemies = {}
@@ -71,31 +104,11 @@ function ENT:Initialize()
 		{Spawned = false, Class = "npc_vj_fnafsb_moondrop"},
 		{Spawned = false, Class = "npc_vj_fnafsb_endo"},
 		{Spawned = false, Class = "npc_vj_fnafsb_endo_blob"},
-		{Spawned = false, Class = "npc_vj_fnafsb_burntrap"}
+		{Spawned = false, Class = "npc_vj_fnafsb_burntrap"},
+		{Spawned = false, Class = "npc_vj_fnafsb_staff_nightmare_nm"},
 	}
 
 	self:SetNW2Int("Remaining",self.ItemCount)
-
-	for i = 1,self.ItemCount do
-		local item = ents.Create("sent_vj_fnafsb_item")
-		item:SetPos(VJ_FNaF_FindHiddenNavArea(false,false))
-		item:Spawn()
-		table.insert(self.Items,item)
-		self:DeleteOnRemove(item)
-		self:SetNW2Int("ItemCount",self:GetNW2Int("ItemCount") +1)
-	end
-
-	local staffCount = GetConVar("vj_fnafsb_gm_staffcount"):GetInt()
-	if staffCount > 0 then
-		-- self.Staff = {}
-		for i = 1,staffCount do
-			local item = ents.Create(VJ_PICK({"npc_vj_fnafsb_staff","npc_vj_fnafsb_staff_security"}))
-			item:SetPos(VJ_FNaF_FindHiddenNavArea(true,false))
-			item:Spawn()
-			-- table.insert(self.Staff,item)
-			self:DeleteOnRemove(item)
-		end
-	end
 
 	local bots = 0
 	for i = 1,self.BotCount do
@@ -120,10 +133,6 @@ function ENT:Initialize()
 		end)
 	end
 	self:SetNW2Int("BotStartCount",bots)
-
-	for _,v in pairs(player.GetAll()) do
-		self:Loadout(v)
-	end
 
 	for i = 1,self.EnemyCount do
 		local function PickEnemy()
@@ -155,24 +164,49 @@ function ENT:Initialize()
 			pos = VJ_FNaF_FindHiddenNavArea(true,false)
 			if !IsValid(enemy) then return end
 		end
+		local storedPos = pos
 		enemy:SetPos(pos)
 		enemy:SetAngles(Angle(0,math.random(0,360),0))
 		enemy:Spawn()
+		table.insert(self.Enemies,enemy)
+		table.insert(self.EnemiesStoredClasses,enemy:GetClass())
+		for i,v in pairs(player.GetAll()) do
+			v:SetNW2String("VJ_FNaF_GM_Enemy" .. #self.Enemies,enemy:GetClass())
+		end
+		-- print("Spawmned " .. enemy:GetClass())
 		enemy.IdleAlwaysWander = true
 		enemy.GodMode = true
 		enemy.VJ_NPC_Class = {"CLASS_FNAF_ANIMATRONIC"}
-		table.insert(self.Enemies,enemy)
-		table.insert(self.EnemiesStoredClasses,enemy:GetClass())
 		self:DeleteOnRemove(enemy)
 		self:SetNW2Int("EnemyCount",self:GetNW2Int("EnemyCount") +1)
+		self:SetPos(pos)
 		-- self:PlayerMsg(enemy:GetName() .. " has appeared in the area!")
 	end
 
-    net.Start("vj_fnafsb_gm_dat")
-		net.WriteTable(self.Enemies)
-		net.WriteTable(self.EnemiesStoredClasses)
-		net.WriteEntity(self)
-    net.Broadcast()
+	for _,v in pairs(player.GetAll()) do
+		self:Loadout(v)
+	end
+
+	for i = 1,self.ItemCount do
+		local item = ents.Create("sent_vj_fnafsb_item")
+		item:SetPos(VJ_FNaF_FindHiddenNavArea(false,false))
+		item:Spawn()
+		table.insert(self.Items,item)
+		self:DeleteOnRemove(item)
+		self:SetNW2Int("ItemCount",self:GetNW2Int("ItemCount") +1)
+	end
+
+	local staffCount = GetConVar("vj_fnafsb_gm_staffcount"):GetInt()
+	if staffCount > 0 then
+		-- self.Staff = {}
+		for i = 1,staffCount do
+			local item = ents.Create(VJ_PICK({"npc_vj_fnafsb_staff","npc_vj_fnafsb_staff_security"}))
+			item:SetPos(VJ_FNaF_FindHiddenNavArea(true,false))
+			item:Spawn()
+			-- table.insert(self.Staff,item)
+			self:DeleteOnRemove(item)
+		end
+	end
 
 	hook.Add("ShouldCollide","VJ_FNaFSB_NoCollide",function(ent1,ent2)
 		if !IsValid(self) then
@@ -200,19 +234,21 @@ function ENT:Initialize()
 				if !IsValid(self) then return end
 				if !IsValid(ply) then return end
 				local controlled = false
-				for _,v in RandomPairs(self.Enemies) do
-					if !v.VJ_IsBeingControlled then
-						self:PlayerSetMsg(ply,"You are an Enemy. Find and kill all of the Survivors to win!")
-						local obj = ents.Create("obj_vj_npccontroller")
-						obj.VJCE_Player = ply
-						obj:SetControlledNPC(v)
-						obj:Spawn()
-						obj:StartControlling()
-						ply:SetEyeAngles(self:GetAngles())
-						obj.VJC_Player_CanExit = false
-						obj.VJC_Player_DrawHUD = false
-						controlled = true
-						break
+				if GetConVar("vj_fnafsb_gm_plyenemy"):GetInt() == 1 then
+					for _,v in RandomPairs(self.Enemies) do
+						if !v.VJ_IsBeingControlled then
+							self:PlayerSetMsg(ply,"You are an Enemy. Find and kill all of the Survivors to win!")
+							local obj = ents.Create("obj_vj_npccontroller")
+							obj.VJCE_Player = ply
+							obj:SetControlledNPC(v)
+							obj:Spawn()
+							obj:StartControlling()
+							ply:SetEyeAngles(self:GetAngles())
+							obj.VJC_Player_CanExit = false
+							obj.VJC_Player_DrawHUD = false
+							controlled = true
+							break
+						end
 					end
 				end
 				timer.Simple(0.02,function()
@@ -258,6 +294,14 @@ function ENT:Initialize()
 		self:SetNW2Int("PlayerCount",self:GetNW2Int("PlayerCount") -1)
 		ply:SetNW2Bool("FNaFSB_Death",true)
 	end)
+
+	VJ_FNAF_GAMEMODEENTITY = self
+
+	timer.Simple(0,function()
+		if IsValid(self) then
+			self.Start = true
+		end
+	end)
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:PlayerNWSound(ply,snd)
@@ -277,12 +321,18 @@ function ENT:PlayerMsg(msg)
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:Think()
+	if !self.Start then return end
 	local remaining = self:GetNW2Int("Remaining")
 	local players_alive = 0
+	-- self:SetPos(Entity(self.PlayerIndex):GetPos())
+	-- self.PlayerIndex = self.PlayerIndex +1
+	-- if self.PlayerIndex > #player.GetAll() then
+	-- 	self.PlayerIndex = 1
+	-- end
 	for _,v in pairs(ents.GetAll()) do
-		if (v:IsPlayer() && v:GetMoveType() != MOVETYPE_OBSERVER) or v.VJ_FNAFSB_Bot then
+		if ((v:IsPlayer() && v:GetMoveType() != MOVETYPE_OBSERVER) or v.VJ_FNAFSB_Bot) && v:Health() > 0 then
 			if v:IsPlayer() then
-				if math.random(1,2) == 1 then self:SetPos(v:GetPos()) end -- Prevent HUD from soft-locking
+				self:SetPos(v:EyePos())
 				if GetConVar("ai_ignoreplayers"):GetInt() == 1 then continue end
 				local wep = v:GetActiveWeapon()
 				if IsValid(wep) && wep:GetClass() != "weapon_vj_fnafsb_fazlight" then
