@@ -73,7 +73,8 @@ function ENT:Use(activator, caller)
 	for _,v in pairs(ents.FindByClass("sent_vj_fnafsb_gamemode")) do
 		if IsValid(v) then
 			v:SetNW2Int("Remaining",v:GetNW2Int("Remaining") -1)
-			PrintMessage(HUD_PRINTCENTER,"A Gift has been picked up! " .. v:GetNW2Int("Remaining") .. "/" .. v:GetNW2Int("ItemCount") .. " Gifts remaining.")
+			PrintMessage(HUD_PRINTCENTER,(activator:IsPlayer() && activator:Nick() or "A Bot") .. " has picked up a Gift! " .. v:GetNW2Int("Remaining") .. "/" .. v:GetNW2Int("ItemCount") .. " Gifts remaining.")
+			-- PrintMessage(HUD_PRINTCENTER,"A Gift has been picked up! " .. v:GetNW2Int("Remaining") .. "/" .. v:GetNW2Int("ItemCount") .. " Gifts remaining.")
 			break
 		end
 	end

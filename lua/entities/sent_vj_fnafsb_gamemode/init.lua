@@ -14,7 +14,10 @@ end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:Loadout(v)
 	v:SetNW2Bool("FNaFSB_Death",false)
+	-- v:SetCollisionGroup(COLLISION_GROUP_WEAPON)
 	v:Spawn()
+	-- v:SetCollisionGroup(COLLISION_GROUP_WEAPON)
+	-- VJ_SetClearPos(v,v:GetPos())
 	v:StripWeapons()
 	v.DidLoadout = true
 	self:SetPos(v:EyePos())
@@ -67,7 +70,7 @@ end
 function ENT:Initialize()
 	self:SetPos(Entity(1):GetPos() +Vector(0,0,15))
 
-	game.CleanUpMap(false,{self:GetClass(),"npc_vj_fnafsb_bot"})
+	game.CleanUpMap(false,{self:GetClass(),"npc_vj_fnafsb_bot","sent_vj_ply_spawnpoint"})
 
 	self:SetModel("models/props_junk/popcan01a.mdl")
 	self:DrawShadow(false)
@@ -110,30 +113,6 @@ function ENT:Initialize()
 
 	self:SetNW2Int("Remaining",self.ItemCount)
 
-	local bots = 0
-	for i = 1,self.BotCount do
-		local item = ents.Create("npc_vj_fnafsb_bot")
-		local points = ents.FindByClass("info_player_start")
-		item:SetPos(VJ_PICK(points):GetPos() +Vector(0,0,4))
-		item:Spawn()
-		self:DeleteOnRemove(item)
-		self:SetNW2Int("PlayerCount",self:GetNW2Int("PlayerCount") +1)
-		bots = bots +1
-
-		local hookName = "VJ_FNaFSB_Remove" .. item:EntIndex()
-		hook.Add("EntityRemoved",hookName,function(ent)
-			if !IsValid(self) then
-				hook.Remove("EntityRemoved",hookName)
-				return
-			end
-			if ent == item then
-				self:SetNW2Int("PlayerCount",self:GetNW2Int("PlayerCount") -1)
-				hook.Remove("EntityRemoved",hookName)
-			end
-		end)
-	end
-	self:SetNW2Int("BotStartCount",bots)
-
 	for i = 1,self.EnemyCount do
 		local function PickEnemy()
 			local tbl = {}
@@ -173,7 +152,7 @@ function ENT:Initialize()
 		for i,v in pairs(player.GetAll()) do
 			v:SetNW2String("VJ_FNaF_GM_Enemy" .. #self.Enemies,enemy:GetClass())
 		end
-		-- print("Spawmned " .. enemy:GetClass())
+		print("Spawmned " .. enemy:GetClass())
 		enemy.IdleAlwaysWander = true
 		enemy.GodMode = true
 		enemy.VJ_NPC_Class = {"CLASS_FNAF_ANIMATRONIC"}
@@ -186,6 +165,36 @@ function ENT:Initialize()
 	for _,v in pairs(player.GetAll()) do
 		self:Loadout(v)
 	end
+
+	local bots = 0
+	for i = 1,self.BotCount do
+		local item = ents.Create("npc_vj_fnafsb_bot")
+		local points = ents.FindByClass("info_player_start")
+		local offset = Vector(0,0,4)
+		if #points <= 0 then
+			points = player.GetAll()
+			offset = VectorRand(-25,25)
+		end
+		offset.z = 4
+		item:SetPos(VJ_PICK(points):GetPos() +offset)
+		item:Spawn()
+		self:DeleteOnRemove(item)
+		self:SetNW2Int("PlayerCount",self:GetNW2Int("PlayerCount") +1)
+		bots = bots +1
+
+		local hookName = "VJ_FNaFSB_Remove" .. item:EntIndex()
+		hook.Add("EntityRemoved",hookName,function(ent)
+			if !IsValid(self) then
+				hook.Remove("EntityRemoved",hookName)
+				return
+			end
+			if ent == item then
+				self:SetNW2Int("PlayerCount",self:GetNW2Int("PlayerCount") -1)
+				hook.Remove("EntityRemoved",hookName)
+			end
+		end)
+	end
+	self:SetNW2Int("BotStartCount",bots)
 
 	for i = 1,self.ItemCount do
 		local item = ents.Create("sent_vj_fnafsb_item")
@@ -335,7 +344,7 @@ function ENT:Think()
 				self:SetPos(v:EyePos())
 				if GetConVar("ai_ignoreplayers"):GetInt() == 1 then continue end
 				local wep = v:GetActiveWeapon()
-				if IsValid(wep) && wep:GetClass() != "weapon_vj_fnafsb_fazlight" then
+				if IsValid(wep) && wep:GetClass() != "weapon_vj_fnafsb_fazlight" && v:GetNW2Bool("FNaFSB_Death",false) == false then
 					v:AllowFlashlight(false)
 				end
 			end
@@ -357,5 +366,6 @@ function ENT:OnRemove()
 	for _,v in pairs(player.GetAll()) do
 		v:AllowFlashlight(true)
 		v.DidLoadout = false
+		-- v:SetCollisionGroup(COLLISION_GROUP_PLAYER)
 	end
 end
