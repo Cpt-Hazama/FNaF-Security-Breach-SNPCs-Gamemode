@@ -104,6 +104,8 @@ function ENT:Initialize()
 		local remaining = self:GetNW2Int("Remaining")
 		local players_alive = self:GetNW2Int("PlayerCount")
 		local botsOriginal = self:GetNW2Int("BotStartCount")
+		local stamina = ply:GetNW2Float("VJ_FNaFSB_Stamina")
+		local staminaMax = 80
 		local players = #player.GetAll()
 		for _,v in pairs(ents.FindByClass("npc_vj_fnafsb_*")) do
 			if !v.VJ_FNaF_StaffBot && !v.VJ_FNAFSB_Bot && !v.VJ_FNaF_IsFreddy then
@@ -123,12 +125,24 @@ function ENT:Initialize()
 		local bposX = 10
 		local bposY = 10
 		local bX = 325
-		local bY = 120
+		local bY = 155
 		draw.RoundedBox(smooth,bposX,bposY,bX,bY,Color(0,0,0,200))
 
 		draw.SimpleText("Enemies - " .. monsters,"VJ_FNaFSB",bposX +10,bposY +5,Color(255,0,0))
 		draw.SimpleText("Gifts - " .. remaining .. "/" .. items,"VJ_FNaFSB",bposX +10,bposY +40,Color(192,189,0))
 		draw.SimpleText("Survivors - " .. players_alive .. "/" .. (players +botsOriginal),"VJ_FNaFSB",bposX +10,bposY +75,Color(0,163,192))
+		draw.SimpleText("Stamina - " .. stamina .. "/" .. staminaMax,"VJ_FNaFSB",bposX +10,bposY +110,Color(22,192,0))
+		
+		if stamina <= staminaMax *0.3 then
+			local rate = stamina <= 0 && 10 or 6
+			local posX = ScrW() *0.15
+			local posY = ScrH() *0.01
+			local sizeX = ScrH() *0.1
+			local sizeY = ScrH() *0.1
+			surface.SetDrawColor(255,0,0,math.abs(math.sin(CurTime() *rate) *255))
+			surface.SetMaterial(Material("hud/cpthazama/fnafsb/stamina.png"))
+			surface.DrawTexturedRect(posX,posY,sizeX,sizeY)
+		end
 
 		local monsterTbl = self.FoundTable
 		local setSpotted = false
@@ -145,7 +159,7 @@ function ENT:Initialize()
 		for i,v in pairs(self.Classes) do
 			if setSpotted == v.Class then
 				v.Spotted = true
-				local customTrack = self.SpecialTracks[v.Class]
+				local customTrack = FNAF_GM.GetCharacterData(v.Class).Override
 				if customTrack then
 					self.OverrideTrack = customTrack
 				end
@@ -209,14 +223,16 @@ function ENT:Think()
 			end
 			if index == 0 then return end
 			local tbl = self.PlayerMusic[index]
-			-- if self.OverrideTrack && tbl.CurrentTrack != self.OverrideTrack then
-			-- 	tbl.NextTrackT = 0
-			-- 	self.PlayerMusic[index].CurrentTrack = self.OverrideTrack
-			-- end
+			if self.OverrideTrack && tbl.CurrentTrack != self.OverrideTrack then
+				tbl.NextTrackT = 0
+				self.PlayerMusic[index].CurrentTrack = self.OverrideTrack
+				self.PlayerMusic[index].Tracks = {self.OverrideTrack}
+				print("STOPPED CURRENT TRACK")
+			end
 			if SysTime() > tbl.NextTrackT then
 				if tbl.Music then tbl.Music:Stop() end
-				local song = self.OverrideTrack or VJ_PICK(tbl.Tracks)
-				-- print("Started new " .. song)
+				local song = VJ_PICK(tbl.Tracks)
+				print("Started new " .. song)
 				sound.PlayFile(song,"noplay noblock",function(soundchannel,errorID,errorName)
 					if IsValid(soundchannel) then
 						soundchannel:Play()

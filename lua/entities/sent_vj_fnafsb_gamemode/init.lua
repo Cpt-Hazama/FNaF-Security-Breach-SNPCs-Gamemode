@@ -4,6 +4,8 @@ include('shared.lua')
 util.AddNetworkString("vj_fnafsb_gm_sound")
 util.AddNetworkString("vj_fnafsb_gm_dat")
 
+local math_Clamp = math.Clamp
+
 ENT.MaxEnemies = 10
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:GiveWeapon(ent,wep)
@@ -21,11 +23,6 @@ function ENT:Loadout(v)
 	v:StripWeapons()
 	v.DidLoadout = true
 	self:SetPos(v:EyePos())
-	-- net.Start("vj_fnafsb_gm_dat")
-	-- 	net.WriteTable(self.Enemies)
-	-- 	net.WriteTable(self.EnemiesStoredClasses)
-	-- 	net.WriteInt(self:EntIndex(),14)
-	-- net.Send(v)
 	timer.Simple(0,function()
 		local controlled = false
 		if #player.GetAll() > 2 && GetConVar("vj_fnafsb_gm_plyenemy"):GetInt() == 1 then
@@ -53,12 +50,20 @@ function ENT:Loadout(v)
 			-- self:SetNW2Int("PlayerCount",self:GetNW2Int("PlayerCount") -1)
 			return
 		end
+		v.VJ_FNaF_WSpeed = v:GetWalkSpeed()
+		v.VJ_FNaF_RSpeed = v:GetRunSpeed()
+		v.VJ_FNaF_JumpPower = v:GetJumpPower()
+		v.VJ_FNaF_ClimbSpeed = v:GetLadderClimbSpeed()
 		v:SetHealth(100)
 		v:SetArmor(100)
 		v:SetWalkSpeed(100)
 		v:SetRunSpeed(230)
 		v:SetJumpPower(150)
 		v:SetLadderClimbSpeed(30)
+		v.VJ_FNaF_Stamina = 80
+		v.VJ_FNaF_NextStaminaDrainT = CurTime()
+		v.VJ_FNaF_NextStaminaRegenT = CurTime()
+		v.VJ_FNaF_NextStaminaRegenDelayT = CurTime()
 		self:GiveWeapon(v,"weapon_vj_fnafsb_fazlight")
 	end)
 	self:SetNW2Int("PlayerCount",self:GetNW2Int("PlayerCount") +1)
@@ -69,8 +74,6 @@ end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:Initialize()
 	self:SetPos(Entity(1):GetPos() +Vector(0,0,15))
-
-	game.CleanUpMap(false,{self:GetClass(),"npc_vj_fnafsb_bot","sent_vj_ply_spawnpoint"})
 
 	self:SetModel("models/props_junk/popcan01a.mdl")
 	self:DrawShadow(false)
@@ -86,10 +89,14 @@ function ENT:Initialize()
 		return
 	end
 
+	PrintMessage(HUD_PRINTCENTER,"FNaF Gamemode is Initializing, please be patient!")
+
+	game.CleanUpMap(false,{self:GetClass(),"npc_vj_fnafsb_bot","sent_vj_ply_spawnpoint"})
+
 	self:SetNW2Int("ItemCount",0)
 	self:SetNW2Int("EnemyCount",0)
 
-	self.EnemyCount = math.Clamp(GetConVar("vj_fnafsb_gm_count"):GetInt(),1,self.MaxEnemies)
+	self.EnemyCount = math_Clamp(GetConVar("vj_fnafsb_gm_count"):GetInt(),1,self.MaxEnemies)
 	self.ItemCount = GetConVar("vj_fnafsb_gm_itemcount"):GetInt()
 	self.BotCount = GetConVar("vj_fnafsb_gm_botcount"):GetInt()
 	self.PlayerIndex = 1
@@ -97,19 +104,11 @@ function ENT:Initialize()
 	self.Items = {}
 	self.Enemies = {}
 	self.EnemiesStoredClasses = {}
-	self.EnemyClasses = {
-		{Spawned = false, Class = VJ_PICK({"npc_vj_fnafsb_chica","npc_vj_fnafsb_chica_shattered"})},
-		{Spawned = false, Class = VJ_PICK({"npc_vj_fnafsb_roxy","npc_vj_fnafsb_roxy_shattered"})},
-		{Spawned = false, Class = VJ_PICK({"npc_vj_fnafsb_monty","npc_vj_fnafsb_monty_shattered"})},
-		{Spawned = false, Class = "npc_vj_fnafsb_bonnie"},
-		{Spawned = false, Class = "npc_vj_fnafsb_vanessa"},
-		{Spawned = false, Class = "npc_vj_fnafsb_lmm"},
-		{Spawned = false, Class = "npc_vj_fnafsb_moondrop"},
-		{Spawned = false, Class = "npc_vj_fnafsb_endo"},
-		{Spawned = false, Class = "npc_vj_fnafsb_endo_blob"},
-		{Spawned = false, Class = "npc_vj_fnafsb_burntrap"},
-		{Spawned = false, Class = "npc_vj_fnafsb_staff_nightmare_nm"},
-	}
+	self.EnemyClasses = {}
+	for _,v in pairs(FNAF_GM.Characters) do
+		print("Added " .. v.Name .. " to the enemy list")
+		table.insert(self.EnemyClasses,{Spawned = false, Class = v.Class})
+	end
 
 	self:SetNW2Int("Remaining",self.ItemCount)
 
@@ -118,6 +117,14 @@ function ENT:Initialize()
 			local tbl = {}
 			for i,v in pairs(self.EnemyClasses) do
 				if v.Spawned == false then
+					local canSpawn = true
+					for _,v2 in pairs(self.EnemiesStoredClasses) do
+						if VJ_HasValue(FNAF_GM.GetCharacterData(v2).Filter,v.Class) then
+							canSpawn = false
+							break
+						end
+					end
+					if !canSpawn then continue end
 					table.insert(tbl,v.Class)
 				end
 			end
@@ -209,11 +216,12 @@ function ENT:Initialize()
 	if staffCount > 0 then
 		-- self.Staff = {}
 		for i = 1,staffCount do
-			local item = ents.Create(VJ_PICK({"npc_vj_fnafsb_staff","npc_vj_fnafsb_staff_security"}))
-			item:SetPos(VJ_FNaF_FindHiddenNavArea(true,false))
-			item:Spawn()
-			-- table.insert(self.Staff,item)
-			self:DeleteOnRemove(item)
+			local pickBot = math.random(1,40) == 1 && "npc_vj_fnafsb_staff_map" or VJ_PICK({"npc_vj_fnafsb_staff","npc_vj_fnafsb_staff_security"})
+			local bot = ents.Create(pickBot)
+			bot:SetPos(VJ_FNaF_FindHiddenNavArea(true,false))
+			bot:Spawn()
+			-- table.insert(self.Staff,bot)
+			self:DeleteOnRemove(bot)
 		end
 	end
 
@@ -329,19 +337,56 @@ function ENT:PlayerMsg(msg)
 	PrintMessage(HUD_PRINTCENTER,msg)
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
+local staminaMax = 80
+local staminaDrain = 1
+local staminaDrainT = 0.1
+local staminaRegen = 1
+local staminaRegenT = 1
+local staminaRegenDelay = 5
+--
 function ENT:Think()
 	if !self.Start then return end
 	local remaining = self:GetNW2Int("Remaining")
 	local players_alive = 0
-	-- self:SetPos(Entity(self.PlayerIndex):GetPos())
-	-- self.PlayerIndex = self.PlayerIndex +1
-	-- if self.PlayerIndex > #player.GetAll() then
-	-- 	self.PlayerIndex = 1
-	-- end
+
 	for _,v in pairs(ents.GetAll()) do
 		if ((v:IsPlayer() && v:GetMoveType() != MOVETYPE_OBSERVER) or v.VJ_FNAFSB_Bot) && v:Health() > 0 then
 			if v:IsPlayer() then
 				self:SetPos(v:EyePos())
+				if v:IsPlayer() then
+					local wSpeed = 100
+					local rSpeed = 230
+					local jPower = 150
+					local cSpeed = 30
+					local isRunning = (v:KeyDown(IN_SPEED) && v:Alive() && v:IsOnGround())
+					if isRunning then
+						if CurTime() > v.VJ_FNaF_NextStaminaDrainT then
+							v.VJ_FNaF_Stamina = math_Clamp(v.VJ_FNaF_Stamina -staminaDrain,0,staminaMax)
+							v.VJ_FNaF_NextStaminaDrainT = CurTime() +staminaDrainT
+						end
+						v.VJ_FNaF_NextStaminaRegenDelayT = CurTime() +staminaRegenDelay
+					else
+						if CurTime() > v.VJ_FNaF_NextStaminaRegenT && CurTime() > v.VJ_FNaF_NextStaminaRegenDelayT then
+							local mT = v:GetMoveType()
+							if (mT == MOVETYPE_WALK or mT == MOVETYPE_LADDER) && v:GetVelocity():Length() <= 0 then
+								staminaRegenT = staminaRegenT *0.5
+							end
+							v.VJ_FNaF_Stamina = math_Clamp(v.VJ_FNaF_Stamina +staminaRegen,0,staminaMax)
+							v.VJ_FNaF_NextStaminaRegenT = CurTime() +staminaRegenT
+						end
+					end
+					if v.VJ_FNaF_Stamina <= 0 then
+						wSpeed = wSpeed -(wSpeed *0.3)
+						rSpeed = rSpeed -(rSpeed *0.6)
+						jPower = jPower -(jPower *0.6)
+						cSpeed = cSpeed -(cSpeed *0.5)
+					end
+					v:SetWalkSpeed(math_Clamp(wSpeed,1,wSpeed))
+					v:SetRunSpeed(math_Clamp(rSpeed,1,rSpeed))
+					v:SetJumpPower(math_Clamp(jPower,1,jPower))
+					v:SetLadderClimbSpeed(math_Clamp(cSpeed,1,cSpeed))
+					v:SetNW2Float("VJ_FNaFSB_Stamina",v.VJ_FNaF_Stamina)
+				end
 				if GetConVar("ai_ignoreplayers"):GetInt() == 1 then continue end
 				local wep = v:GetActiveWeapon()
 				if IsValid(wep) && wep:GetClass() != "weapon_vj_fnafsb_fazlight" && v:GetNW2Bool("FNaFSB_Death",false) == false then
@@ -365,6 +410,10 @@ end
 function ENT:OnRemove()
 	for _,v in pairs(player.GetAll()) do
 		v:AllowFlashlight(true)
+		v:SetWalkSpeed(v.VJ_FNaF_WSpeed)
+		v:SetRunSpeed(v.VJ_FNaF_RSpeed)
+		v:SetJumpPower(v.VJ_FNaF_JumpPower)
+		v:SetLadderClimbSpeed(v.VJ_FNaF_ClimbSpeed)
 		v.DidLoadout = false
 		-- v:SetCollisionGroup(COLLISION_GROUP_PLAYER)
 	end

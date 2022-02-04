@@ -20,6 +20,8 @@ if VJExists == true then
 		return
 	end
 
+	VJ_FNAF_GM_INSTALLED = true
+
 	local vCat = Name
 	VJ.AddNPC("(Gamemode) Scavenger Hunt","sent_vj_fnafsb_gamemode",vCat)
 	VJ.AddNPC("Player Bot","npc_vj_fnafsb_bot",vCat)
@@ -29,6 +31,108 @@ if VJExists == true then
 	VJ.AddConVar("vj_fnafsb_gm_staffcount", 10, {FCVAR_ARCHIVE, FCVAR_NOTIFY})
 	VJ.AddConVar("vj_fnafsb_gm_botcount", 6, {FCVAR_ARCHIVE, FCVAR_NOTIFY})
 	VJ.AddConVar("vj_fnafsb_gm_plyenemy", 1, {FCVAR_ARCHIVE, FCVAR_NOTIFY})
+
+	FNAF_GM = {}
+	FNAF_GM.Characters = {}
+	FNAF_GM.Weapons = {}
+
+	FNAF_GM.AddCharacter = function(name,class,ovSong,filter) -- str Public Name, str Class, str Override Song, table Entities that it can't co-exist with
+		table.insert(FNAF_GM.Characters,{Name = name,Class = class,Override = ovSong, Filter = filter})
+	end
+
+	FNAF_GM.GetCharacterData = function(class)
+		for _,v in pairs(FNAF_GM.Characters) do
+			if v.Class == class then
+				return v
+			end
+		end
+		return false
+	end
+
+	FNAF_GM.AddCharacter(
+		"Glamrock Chica",
+		"npc_vj_fnafsb_chica",
+		nil,
+		{"npc_vj_fnafsb_chica_shattered"}
+	)
+	FNAF_GM.AddCharacter(
+		"Roxanne Wolf",
+		"npc_vj_fnafsb_roxy",
+		nil,
+		{"npc_vj_fnafsb_roxy_shattered"}
+	)
+	FNAF_GM.AddCharacter(
+		"Montegomery Gator",
+		"npc_vj_fnafsb_monty",
+		nil,
+		{"npc_vj_fnafsb_monty_shattered"}
+	)
+	FNAF_GM.AddCharacter(
+		"Glamrock Bonnie",
+		"npc_vj_fnafsb_bonnie",
+		nil,
+		{}
+	)
+	FNAF_GM.AddCharacter(
+		"Vanessa A.",
+		"npc_vj_fnafsb_vanessa",
+		nil,
+		{}
+	)
+	FNAF_GM.AddCharacter(
+		"Little Music Man (Withered)",
+		"npc_vj_fnafsb_lmm",
+		nil,
+		{}
+	)
+	FNAF_GM.AddCharacter(
+		"Moon-Drop",
+		"npc_vj_fnafsb_moondrop",
+		nil,
+		{"npc_vj_fnafsb_staff_nightmare_nm","npc_vj_fnafvr_nm"}
+	)
+	FNAF_GM.AddCharacter(
+		"Endo-Skeleton",
+		"npc_vj_fnafsb_endo",
+		nil,
+		{}
+	)
+	FNAF_GM.AddCharacter(
+		"Blob-Skeleton",
+		"npc_vj_fnafsb_endo_blob",
+		nil,
+		{}
+	)
+	FNAF_GM.AddCharacter(
+		"Burntrap",
+		"npc_vj_fnafsb_burntrap",
+		nil,
+		{}
+	)
+	FNAF_GM.AddCharacter(
+		"Glamrock Chica (Shattered)",
+		"npc_vj_fnafsb_chica_shattered",
+		nil,
+		{"npc_vj_fnafsb_chica"}
+	)
+	FNAF_GM.AddCharacter(
+		"Roxanne Wolf (Shattered)",
+		"npc_vj_fnafsb_roxy_shattered",
+		nil,
+		{"npc_vj_fnafsb_roxy"}
+	)
+	FNAF_GM.AddCharacter(
+		"Montegomery Gator (Shattered)",
+		"npc_vj_fnafsb_monty_shattered",
+		nil,
+		{"npc_vj_fnafsb_monty"}
+	)
+	FNAF_GM.AddCharacter(
+		"Nightmarionne (Possessed Form)",
+		"npc_vj_fnafsb_staff_nightmare_nm",
+		nil,
+		{"npc_vj_fnafvr_nm"}
+	)
 
 	if CLIENT then
 		hook.Add("PopulateToolMenu", "VJ_ADDTOMENU_FNAF_SB_GM", function()
