@@ -46,7 +46,7 @@ function ENT:Initialize()
 		end
 	end
 	local ply = LocalPlayer()
-	for i = 1,GetConVar("vj_fnafsb_gm_count"):GetInt() do
+	for i = 1,self:GetNW2Int("EnemyCount") do
 		table.insert(self.Classes,{Class = ply:GetNW2String("VJ_FNaF_GM_Enemy" .. i),Spotted = false})
 	end
 

@@ -106,7 +106,7 @@ function ENT:Initialize()
 	self.EnemiesStoredClasses = {}
 	self.EnemyClasses = {}
 	for _,v in pairs(FNAF_GM.Characters) do
-		print("Added " .. v.Name .. " to the enemy list")
+		-- print("Added " .. v.Name .. " to the enemy list")
 		table.insert(self.EnemyClasses,{Spawned = false, Class = v.Class})
 	end
 
@@ -205,7 +205,7 @@ function ENT:Initialize()
 
 	for i = 1,self.ItemCount do
 		local item = ents.Create("sent_vj_fnafsb_item")
-		item:SetPos(VJ_FNaF_FindHiddenNavArea(false,false))
+		item:SetPos(VJ_FNaF_FindHiddenNavArea(false,true))
 		item:Spawn()
 		table.insert(self.Items,item)
 		self:DeleteOnRemove(item)
@@ -341,7 +341,7 @@ local staminaMax = 80
 local staminaDrain = 1
 local staminaDrainT = 0.1
 local staminaRegen = 1
-local staminaRegenT = 1
+local staminaRegenT = 0.5
 local staminaRegenDelay = 5
 --
 function ENT:Think()
