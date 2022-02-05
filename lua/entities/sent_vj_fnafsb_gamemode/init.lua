@@ -7,6 +7,14 @@ util.AddNetworkString("vj_fnafsb_gm_dat")
 local math_Clamp = math.Clamp
 
 ENT.MaxEnemies = 10
+--
+local staminaMax = 100
+local staminaDrain = 1
+local staminaDrainT = 0.1
+local staminaRegen = 1
+local staminaRegenT = 0.5
+local staminaRegenDelay = 5
+--
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:GiveWeapon(ent,wep)
 	ent.VJ_CanBePickedUpWithOutUse = true
@@ -143,11 +151,11 @@ function ENT:Initialize()
 		if !IsValid(enemy) then
 			enemy = ents.Create(PickEnemy())
 		end
-		local pos = VJ_FNaF_FindHiddenNavArea(true,false)
+		local pos = VJ_FNaF_FindHiddenNavArea(true,true)
 		if pos == false then
 			SafeRemoveEntity(enemy)
 			enemy = ents.Create(PickEnemy())
-			pos = VJ_FNaF_FindHiddenNavArea(true,false)
+			pos = VJ_FNaF_FindHiddenNavArea(true,true)
 			if !IsValid(enemy) then return end
 		end
 		local storedPos = pos
@@ -162,6 +170,7 @@ function ENT:Initialize()
 		print("Spawmned " .. enemy:GetClass())
 		enemy.IdleAlwaysWander = true
 		enemy.GodMode = true
+		enemy.CanKill = true
 		enemy.VJ_NPC_Class = {"CLASS_FNAF_ANIMATRONIC"}
 		self:DeleteOnRemove(enemy)
 		self:SetNW2Int("EnemyCount",self:GetNW2Int("EnemyCount") +1)
@@ -218,7 +227,7 @@ function ENT:Initialize()
 		for i = 1,staffCount do
 			local pickBot = math.random(1,40) == 1 && "npc_vj_fnafsb_staff_map" or VJ_PICK({"npc_vj_fnafsb_staff","npc_vj_fnafsb_staff_security"})
 			local bot = ents.Create(pickBot)
-			bot:SetPos(VJ_FNaF_FindHiddenNavArea(true,false))
+			bot:SetPos(VJ_FNaF_FindHiddenNavArea(true,true))
 			bot:Spawn()
 			-- table.insert(self.Staff,bot)
 			self:DeleteOnRemove(bot)
@@ -337,13 +346,6 @@ function ENT:PlayerMsg(msg)
 	PrintMessage(HUD_PRINTCENTER,msg)
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
-local staminaMax = 80
-local staminaDrain = 1
-local staminaDrainT = 0.1
-local staminaRegen = 1
-local staminaRegenT = 0.5
-local staminaRegenDelay = 5
---
 function ENT:Think()
 	if !self.Start then return end
 	local remaining = self:GetNW2Int("Remaining")
