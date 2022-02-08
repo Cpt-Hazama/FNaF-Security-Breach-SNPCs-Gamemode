@@ -53,7 +53,9 @@ if VJExists == true then
 			end
 			local ply = LocalPlayer()
 			for i = 1,self:GetNW2Int("EnemyCount") do
-				table.insert(self.Classes,{Class = ply:GetNW2String("VJ_FNaF_GM_Enemy" .. i),Spotted = false})
+				local class = ply:GetNW2String("VJ_FNaF_GM_Enemy"..i)
+				table.insert(self.Classes,{Class = class,Spotted = false})
+				table.insert(self.FoundTable,{Ent = ents.FindByClass(class)[1],Spotted = false})
 			end
 
 			hook.Add("PreDrawHalos","VJ_FNaFSB_RenderFX",function()
@@ -171,19 +173,19 @@ if VJExists == true then
 				local stamina = ply:GetNW2Float("VJ_FNaFSB_Stamina")
 				local staminaMax = 100
 				local players = #player.GetAll()
-				for _,v in pairs(ents.FindByClass("npc_vj_fnaf*")) do
-					if !v.VJ_FNaF_StaffBot && !v.VJ_FNAFSB_Bot && !v.VJ_FNaF_IsFreddy then
-						local canAdd = true
-						for _,n in ipairs(self.FoundTable) do
-							if n && n.Ent == v then
-								canAdd = false
-								break
-							end
-						end
-						if !canAdd then continue end
-						table.insert(self.FoundTable,{Ent = v,Spotted = false})
-					end
-				end
+				-- for _,v in pairs(ents.FindByClass("npc_vj_fnaf*")) do
+				-- 	if !v.VJ_FNaF_StaffBot && !v.VJ_FNAFSB_Bot && !v.VJ_FNaF_IsFreddy then
+				-- 		local canAdd = true
+				-- 		for _,n in ipairs(self.FoundTable) do
+				-- 			if n && n.Ent == v then
+				-- 				canAdd = false
+				-- 				break
+				-- 			end
+				-- 		end
+				-- 		if !canAdd then continue end
+				-- 		table.insert(self.FoundTable,{Ent = v,Spotted = false})
+				-- 	end
+				-- end
 
 				local smooth = 8
 				local bposX = 10
